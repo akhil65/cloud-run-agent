@@ -42,14 +42,17 @@ The core components of the agent framework are:
     ```bash
     cd /path/to/your/project
     ```
-3.  Install dependencies:
-    ```bash
-    pip install -r requirements.txt
-    ```
-4.  Run the application. It will be available at `http://127.0.0.1:8080`.
-    ```bash
-    python app.py
-    ```
+
+3. Install dependencies:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Run the application (available at `http://127.0.0.1:8080`):
+
+   ```bash
+   python app.py
+   ```
 
 ---
 
@@ -57,59 +60,58 @@ The core components of the agent framework are:
 
 ### Building the Image
 
-To ensure compatibility with cloud services like Cloud Run (which use `amd64` architecture), build the image using the `--platform` flag.
+To ensure compatibility with Cloud Run (which uses `amd64` architecture):
 
 ```bash
 docker build --platform=linux/amd64 -t my-agent .
+```
 
-**Running the Container Locally**
+### Running the Container Locally
 
-This command runs the container and maps your local port 8080 to the container's port 8080.
+Run the container and map your local port `8080` to the container's port `8080`:
 
-Bash
-
+```bash
 docker run -p 8080:8080 my-agent
-**Deployment to Google Cloud Run**
+```
 
-**1. Google Cloud Setup**
+---
 
-Create a Google Cloud account and a new project.
+## Deployment to Google Cloud Run
 
-Install and initialize the gcloud CLI.
+### 1. Google Cloud Setup
 
-Log in and set your project:
+1. Create a Google Cloud account and a new project.
+2. Install and initialize the gcloud CLI.
+3. Log in and set your project:
 
-Bash
+   ```bash
+   gcloud auth login
+   gcloud config set project [YOUR_PROJECT_ID]
+   ```
 
-gcloud auth login
-gcloud config set project [YOUR_PROJECT_ID]
+### 2. Enable APIs and Create Repository
 
-**2. Enable APIs and Create Repository**
-
-Bash
-
+```bash
 # Enable required services
 gcloud services enable run.googleapis.com artifactregistry.googleapis.com
 
 # Create a repository in Artifact Registry
 gcloud artifacts repositories create my-agent-repo \
---repository-format=docker \
---location=us-central1
+  --repository-format=docker \
+  --location=us-central1
+```
 
-**3. Authenticate Docker**
+### 3. Authenticate Docker
 
-Configure Docker to use your gcloud credentials to authenticate with Artifact Registry.
+Configure Docker to use your gcloud credentials:
 
-Bash
-
+```bash
 gcloud auth configure-docker us-central1-docker.pkg.dev
+```
 
-**4. Tag and Push the Image**
+### 4. Tag and Push the Image
 
-Tag your local image with the full repository path and push it to the cloud.
-
-Bash
-
+```bash
 # Define your image URI
 IMAGE_URI="us-central1-docker.pkg.dev/[YOUR_PROJECT_ID]/my-agent-repo/my-agent"
 
@@ -118,64 +120,74 @@ docker tag my-agent $IMAGE_URI
 
 # Push the image
 docker push $IMAGE_URI
+```
 
-**5. Deploy to Cloud Run**
+### 5. Deploy to Cloud Run
 
-Deploy the image from Artifact Registry to a new Cloud Run service.
-
-Bash
-
+```bash
 gcloud run deploy my-agent-service \
---image=$IMAGE_URI \
---platform=managed \
---region=us-central1 \
---allow-unauthenticated
+  --image=$IMAGE_URI \
+  --platform=managed \
+  --region=us-central1 \
+  --allow-unauthenticated
+```
 
-**Verification and Testing**
+---
 
-**1. Manual End-to-End Testing**
+## Verification and Testing
 
-**Check Status:** Navigate to the public Service URL provided by Cloud Run in a browser. It should return "Agent is ready for a goal."
+### 1. Manual End-to-End Testing
 
-**Test Workflow:** Use an API client like Postman or curl to POST a goal to / and then POST to /next-step until the plan is complete.
+* **Check Status:** Visit the Cloud Run service URL. It should return:
 
-**2. Automated API Testing**
+  ```
+  Agent is ready for a goal.
+  ```
 
-The test_agent.py script provides an automated end-to-end test. Update the BASE_URL in the script with your service URL and run it.
+* **Test Workflow:**
+  Use an API client (Postman or curl) to:
 
-Bash
+  * `POST` a goal to `/`
+  * `POST` to `/next-step` repeatedly until completion.
 
+### 2. Automated API Testing
+
+Run the test script after updating the service URL:
+
+```bash
 python test_agent.py
+```
 
-**3. Health Checks and Log Inspection**
+### 3. Health Checks and Log Inspection
 
-Navigate to your service in the Google Cloud Console > Cloud Run.
+* **Logs:**
+  Cloud Console → Cloud Run → *Logs* tab
+  Look for `Container started` and your app's `print()` logs.
 
-LOGS Tab: View application and system logs. Look for "Container started" messages and logs from your application's print() statements.
+* **Metrics:**
+  Cloud Console → Cloud Run → *Metrics* tab
+  Review Request Count, Latency, and CPU/Memory graphs.
 
-METRICS Tab: View performance graphs for Request Count, Latency, and resource utilization.
+---
 
-**Security Improvements**
+## Security Improvements
 
-The final app.py includes key security improvements over the initial prototype.
+### Input Validation
 
-**Input Validation**
-
-The handle_goal endpoint validates incoming JSON data to prevent crashes and basic abuse.
+The final `app.py` adds robust input validation to prevent crashes and misuse.
 
 **Before (Vulnerable):**
 
-Python
-
+```python
 def handle_goal():
     data = request.get_json()
-    goal_from_client = data['goal'] # Trusts input completely
+    goal_from_client = data['goal']  # Trusts input completely
     # ...
+```
 
 **After (Secure):**
 
-Python
-
+```python
 def handle_goal():
     data = request.get_json()
 
@@ -190,27 +202,31 @@ def handle_goal():
     if len(goal_from_client) > 200:
         return jsonify({"error": "Invalid length: 'goal' cannot exceed 200 characters."}), 400
     # ...
+```
 
-**Secure Error Handling**
+### Secure Error Handling
 
-Generic error messages are returned to the user, while detailed exceptions are logged internally to prevent information leakage.
+Generic error messages are returned to users; detailed errors are logged internally.
 
 **Before (Vulnerable):**
 
-Python
-
+```python
 except Exception as e:
     # Leaks internal error details to the user
     return f"Error processing request: {e}", 500
+```
 
 **After (Secure):**
 
-Python
-
+```python
 except Exception as e:
-    # Log the detailed error for developers to see internally
     logging.error(f"An internal error occurred: {e}", exc_info=True)
 
-    # Return a generic, unhelpful message to the user
-    error_response = {"error_code": "E500", "message": "An internal server error occurred."}
+    error_response = {
+        "error_code": "E500",
+        "message": "An internal server error occurred."
+    }
     return jsonify(error_response), 500
+```
+
+---
