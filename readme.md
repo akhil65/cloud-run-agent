@@ -1,75 +1,65 @@
-**AI Agent on Cloud Run**
+# AI Agent on Cloud Run
 
 This project is a foundational framework for a task-oriented AI agent, built with Python and Flask, containerized with Docker, and deployed as a serverless application on Google Cloud Run.
 
-**Project Overview**
+---
+
+## Project Overview
 
 The application functions as a web service that can receive a high-level goal, break it down into a multi-step plan, and track its progress toward completion. This serves as a backend for an autonomous agent capable of executing complex workflows.
 
 The core components of the agent framework are:
 
-**Web Service:** An API built with Flask to receive goals and report status via HTTP requests.
+* **Web Service:** An API built with Flask to receive goals and report status via HTTP requests.
+* **Planning Engine:** A function (`create_plan`) that simulates the agent's intelligence by creating a step-by-step plan from a given goal.
+* **State Machine:** A simple in-memory tracker (`current_step_index`) that serves as the agent's memory, allowing it to know its current position in the plan.
+* **Tool-Using Capability:** A placeholder function (`use_tool_for_step`) that represents the agent's ability to take real-world actions to complete a step.
 
-**Planning Engine:** A function (create_plan) that simulates the agent's intelligence by creating a step-by-step plan from a given goal.
+---
 
-**State Machine:** A simple in-memory tracker (current_step_index) that serves as the agent's memory, allowing it to know its current position in the plan.
+## Technology Stack
 
-**Tool-Using Capability:** A placeholder function (use_tool_for_step) that represents the agent's ability to take real-world actions to complete a step.
+* **Language:** Python 3.9+
+* **Framework:** Flask
+* **Containerization:** Docker
+* **Cloud Platform:** Google Cloud Run, Artifact Registry
+* **CLI Tools:** `gcloud`, `docker`
+* **Testing:** `requests` (Python library)
 
-**Technology Stack**
+---
 
-**Language:** Python 3.9+
+## Local Development Setup
 
-**Framework:** Flask
+### Prerequisites
 
-**Containerization:** Docker
+* Python 3.9+ and pip installed.
+* Docker Desktop installed and running.
 
-**Cloud Platform:** Google Cloud Run, Artifact Registry
+### Instructions
 
-**CLI Tools:** gcloud, docker
+1.  Clone the repository (or create the project files locally).
+2.  Navigate to the project directory:
+    ```bash
+    cd /path/to/your/project
+    ```
+3.  Install dependencies:
+    ```bash
+    pip install -r requirements.txt
+    ```
+4.  Run the application. It will be available at `http://127.0.0.1:8080`.
+    ```bash
+    python app.py
+    ```
 
-**Testing:** requests (Python library)
+---
 
-**Local Development Setup**
+## Docker Usage
 
-**Prerequisites**
+### Building the Image
 
-Python 3.9+ and pip installed.
+To ensure compatibility with cloud services like Cloud Run (which use `amd64` architecture), build the image using the `--platform` flag.
 
-Docker Desktop installed and running.
-
-**Instructions**
-
-1. Clone the repository (or create the project files locally).
-
-2. Navigate to the project directory:
-
-Bash
-
-cd /path/to/your/project
-
-3. Install dependencies:
-
-Bash
-
-pip install -r requirements.txt
-
-4. Run the application:
-
-The application will be available at http://127.0.0.1:8080.
-
-Bash
-
-python app.py
-
-**Docker Usage**
-
-**Building the Image**
-
-To ensure compatibility with cloud services like Cloud Run (which use amd64 architecture), build the image using the --platform flag.
-
-Bash
-
+```bash
 docker build --platform=linux/amd64 -t my-agent .
 
 **Running the Container Locally**
